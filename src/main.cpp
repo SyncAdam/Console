@@ -6,14 +6,13 @@
 //pins are defined in the user setup header file
 
 #include <SPI.h>
-#include "Ship.h"
 
 #define JOYX 0
 #define JOYY 2
 #define JOYBTN 4
 
 #define MPU_SDA 21
-#define MPU_SCL
+#define MPU_SCL 22
 
 #define WIDTH 240
 #define HEIGHT 320
@@ -125,6 +124,11 @@ void screenSaver()
       drawScreen(TFTscreen, buffer);
     }
 
+}
+
+void testPeriphs()
+{
+  
 }
 
 void loop() {
