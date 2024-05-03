@@ -12,7 +12,7 @@
 #define JOYY 2
 #define JOYBTN 4
 
-#define MPU_SDA
+#define MPU_SDA 21
 #define MPU_SCL
 
 #define WIDTH 240
@@ -20,12 +20,15 @@
 
 TFT_eSPI TFTscreen = TFT_eSPI(240, 320);
 u_int8_t buffer [WIDTH * HEIGHT];
+MPU6050_Base mpu;
 
 void setup() {
   //initialize the screen
   TFTscreen.init();
   // set the background color to black
   TFTscreen.fillScreen(TFT_BLACK);
+
+  mpu.initialize();
   
   TFTscreen.setTextSize(2);
 
