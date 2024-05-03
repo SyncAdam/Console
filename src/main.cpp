@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include <cstdlib>
-#include "GinaESP.h"
+#include "src\GinaESP.h"
 #include "MPU6050.h"
 //pins are defined in the user setup header file
 
