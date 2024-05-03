@@ -5,6 +5,7 @@
 #include "MPU6050.h"
 //pins are defined in the user setup header file
 
+//bruuuuh
 #include <SPI.h>
 
 #define JOYX 0
@@ -128,7 +129,7 @@ void screenSaver()
 
 void testPeriphs()
 {
-  
+
 }
 
 void loop() {
