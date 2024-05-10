@@ -1,16 +1,18 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include <cstdlib>
-#include "src\GinaESP.h"
+#include "GinaESP.h"
 #include "MPU6050.h"
 //pins are defined in the user setup header file
 
-//bruuuuh
 #include <SPI.h>
+#include <Wire.h>
 
-#define JOYX 0
-#define JOYY 2
-#define JOYBTN 4
+#define JOYX 2
+#define JOYY 0
+#define JOY_BUTTON 4
+#define BUTTON1 33
+#define BUTTON2 32
 
 #define MPU_SDA 21
 #define MPU_SCL 22
@@ -18,23 +20,51 @@
 #define WIDTH 240
 #define HEIGHT 320
 
-TFT_eSPI TFTscreen = TFT_eSPI(240, 320);
+TFT_eSPI TFTscreen = TFT_eSPI(WIDTH, HEIGHT);
 u_int8_t buffer [WIDTH * HEIGHT];
+u_int8_t buffer2 [WIDTH * HEIGHT];
 MPU6050_Base mpu;
 
+u_int16_t x_middle = 1945;
+u_int16_t y_middle = 2543;
+
+const u_int8_t tolerance = 40;
+
+bool button1, button2;
+
+int joyx, joyy;
+bool joy_button;
+
 void setup() {
+
+  Wire.begin();
   //initialize the screen
   TFTscreen.init();
   // set the background color to black
   TFTscreen.fillScreen(TFT_BLACK);
 
+  Serial.begin(9600);
+
   mpu.initialize();
-  
+
+  Serial.println(mpu.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+
   TFTscreen.setTextSize(2);
 
+  pinMode(BUTTON1, INPUT);
+  pinMode(BUTTON2, INPUT);
+  /*
   pinMode(JOYX, INPUT);
   pinMode(JOYY, INPUT);
-  pinMode(JOYBTN, INPUT);
+  pinMode(JOY_BUTTON, INPUT);
+  */
+
+  button1 = digitalRead(BUTTON1);
+  button2 = digitalRead(BUTTON2);
+
+  joyx = analogRead(JOYX);
+  joyy = analogRead(JOYY);
+  joy_button = !digitalRead(JOY_BUTTON);
 }
 
 void screenSaver()
@@ -130,6 +160,36 @@ void screenSaver()
 void testPeriphs()
 {
 
+
+  joyx = analogRead(JOYX);
+  joyy = analogRead(JOYY);
+  joy_button = !digitalRead(JOY_BUTTON);
+
+  Serial.print("button1: ");
+  Serial.println(button1);
+  Serial.print("button2: ");
+  Serial.println(button2);
+  Serial.print("joyx: ");
+  Serial.println(joyx);
+  Serial.print("joyy: ");
+  Serial.println(joyy);
+  Serial.print("joy_button: ");
+  Serial.println(joy_button);
+  Serial.println("============");
+
+
+  /*
+    Serial.print("ax: ");
+    Serial.println(mpu.getAccelerationX());
+    Serial.print("ay: ");
+    Serial.println(mpu.getAccelerationY());
+    Serial.print("az: ");
+    Serial.println(mpu.getAccelerationZ());
+    Serial.println("============");
+  */
+
+
+  delay(500);
 }
 
 void loop() {
