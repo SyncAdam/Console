@@ -2,28 +2,16 @@
 #include <TFT_eSPI.h>
 #include <cstdlib>
 #include "GinaESP.h"
-#include "MPU6050.h"
+#include <Adafruit_MPU6050.h>
 #include "Lab.h"
+#include "macros.h"
 //pins are defined in the user setup header file
 
 #include <SPI.h>
 #include <Wire.h>
 
-#define JOYX 2
-#define JOYY 0
-#define JOY_BUTTON 4
-#define BUTTON1 33
-#define BUTTON2 32
-
-#define MPU_SDA 21
-#define MPU_SCL 22
-
-#define WIDTH 240
-#define HEIGHT 320
-
 TFT_eSPI TFTscreen = TFT_eSPI(WIDTH, HEIGHT);
-u_int8_t buffer [WIDTH * HEIGHT];
-MPU6050_Base mpu;
+Adafruit_MPU6050 mpu;
 
 u_int16_t x_middle = 1945;
 u_int16_t y_middle = 2543;
@@ -45,33 +33,19 @@ void setup() {
 
   Serial.begin(9600);
 
-  mpu.initialize();
+  // Try to initialize!
+  if (!mpu.begin()) {
+    Serial.println("Failed to find MPU6050 chip");
+    while (1) {
+      delay(10);
+    }
+  }
 
-  Serial.println(mpu.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
-  mpu.CalibrateAccel(6);
-  mpu.CalibrateGyro(6);
-  Serial.println("\nat 600 Readings");
-  mpu.PrintActiveOffsets();
-  Serial.println();
-  mpu.CalibrateAccel(1);
-  mpu.CalibrateGyro(1);
-  Serial.println("700 Total Readings");
-  mpu.PrintActiveOffsets();
-  Serial.println();
-  mpu.CalibrateAccel(1);
-  mpu.CalibrateGyro(1);
-  Serial.println("800 Total Readings");
-  mpu.PrintActiveOffsets();
-  Serial.println();
-  mpu.CalibrateAccel(1);
-  mpu.CalibrateGyro(1);
-  Serial.println("900 Total Readings");
-  mpu.PrintActiveOffsets();
-  Serial.println();    
-  mpu.CalibrateAccel(1);
-  mpu.CalibrateGyro(1);
-  Serial.println("1000 Total Readings");
-  mpu.PrintActiveOffsets();
+  mpu.setAccelerometerRange(MPU6050_RANGE_16_G);
+  mpu.setGyroRange(MPU6050_RANGE_250_DEG);
+  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+  Serial.println("");
+  GinaESP::initGraphics();
 
   TFTscreen.setTextSize(2);
 
@@ -89,26 +63,6 @@ void setup() {
   joyx = analogRead(JOYX);
   joyy = analogRead(JOYY);
   joy_button = !digitalRead(JOY_BUTTON);
-}
-
-void checkSettings()
-{
-  Serial.println();
-  
-  Serial.print(" * Sleep Mode:            ");
-  Serial.println(mpu.getSleepEnabled() ? "Enabled" : "Disabled");
-  
-  Serial.print(" * Clock Source:          ");
-  switch(mpu.getClockSource())
-  {
-    case MPU6050_CLOCK_KEEP_RESET:     Serial.println("Stops the clock and keeps the timing generator in reset"); break;
-    case MPU6050_CLOCK_PLL_ZGYRO:      Serial.println("PLL with Z axis gyroscope reference"); break;
-    case MPU6050_CLOCK_PLL_YGYRO:      Serial.println("PLL with Y axis gyroscope reference"); break;
-    case MPU6050_CLOCK_PLL_XGYRO:      Serial.println("PLL with X axis gyroscope reference"); break;
-  }
-  
-  Serial.print(" * Accelerometer:         ");  
-  Serial.println();
 }
 
 void screenSaver()
@@ -140,18 +94,13 @@ void screenSaver()
   //fill color array with random colors
   for(int i = 0; i < nBalls; i++)
   {
-    color[i] = colors[rand() % 24];
+    color[i] = GinaESP::colors[rand() % 24];
   }
 
     long time = millis();
     while (true) {
 
-      for(int i = 0; i < WIDTH * HEIGHT; i++)
-      {
-        buffer[i] = TFT_BLACK;
-      }
-
-      drawFPS(TFTscreen, buffer, time);
+      GinaESP::drawFPS(TFTscreen, time);
       time = millis();
 
       //update the position of the balls
@@ -194,9 +143,9 @@ void screenSaver()
         }
 
         //draw the balls
-        fillCircle(TFTscreen, buffer, x[i], y[i], ballRadius, color[i]);
+        GinaESP::fillCircle(TFTscreen, x[i], y[i], ballRadius, color[i]);
       }
-      drawScreen(TFTscreen, buffer);
+      GinaESP::drawScreen(TFTscreen);
     }
 
 }
@@ -219,9 +168,20 @@ void testPeriphs()
   Serial.println(joy_button);
   Serial.println("============");
 
+  sensors_event_t a, g, temp;
+  mpu.getEvent(&a, &g, &temp);
+
+  /* Print out the values */
+  Serial.print("AccelX:");
+  Serial.println(a.acceleration.x);
+  Serial.print("AccelY:");
+  Serial.println(a.acceleration.y);
+
+  Serial.println("");
+
   delay(500);
 }
 
 void loop() {
-  screenSaver();
+  Lab::playLab(&mpu, TFTscreen);
 }
