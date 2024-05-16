@@ -40,11 +40,17 @@ void setup() {
       delay(10);
     }
   }
+  else
+  {
+    Serial.println("MPU6050 successfully initialized");
+  }
 
+  mpu.setClock(MPU6050_INTR_8MHz);
   mpu.setAccelerometerRange(MPU6050_RANGE_16_G);
   mpu.setGyroRange(MPU6050_RANGE_250_DEG);
   mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
-  Serial.println("");
+  Serial.print("Clock: ");
+  Serial.println(mpu.getClock());
   GinaESP::initGraphics();
 
   TFTscreen.setTextSize(2);
@@ -184,4 +190,5 @@ void testPeriphs()
 
 void loop() {
   Lab::playLab(&mpu, TFTscreen);
+  //testPeriphs();
 }

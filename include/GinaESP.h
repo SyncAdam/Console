@@ -11,11 +11,21 @@
 
 namespace GinaESP{
 
-  void clearBuffer();
-
   const uint16_t colors[24] = {TFT_BLACK, TFT_NAVY, TFT_DARKGREEN, TFT_DARKCYAN, TFT_MAROON, TFT_PURPLE, TFT_OLIVE, TFT_LIGHTGREY, TFT_DARKGREY, TFT_BLUE, TFT_GREEN, TFT_CYAN, TFT_RED, TFT_MAGENTA, TFT_YELLOW, TFT_WHITE, TFT_ORANGE, TFT_GREENYELLOW, TFT_PINK, TFT_BROWN, TFT_GOLD, TFT_SILVER, TFT_SKYBLUE, TFT_VIOLET};
 
   u_int8_t buffer [WIDTH * HEIGHT];
+
+  void clearBuffer();
+  void initGraphics();
+  void drawBuffer(uint8_t buffer[WIDTH * HEIGHT]);
+  void drawScreen(TFT_eSPI &TFTscreen);
+  void drawFPS(TFT_eSPI &TFTscreen, long time);
+  void fillCircle(TFT_eSPI &TFTscreen, int16_t x, int16_t y, uint8_t radius, uint16_t color);
+  void drawHLine(TFT_eSPI &TFTscreen, int16_t x_start, int16_t x_end, int16_t y, uint16_t color);
+  void drawVLine(TFT_eSPI &TFTscreen, int16_t y_start, int16_t y_end, int16_t x, uint16_t color);
+  void drawRect(TFT_eSPI &TFTscreen);
+  void fillRect(TFT_eSPI &TFTscreen, int16_t diagp1_x, int16_t diagp1_y, int16_t diagp2_x, int16_t diagp2_y, uint16_t color);
+  void drawTriangle(TFT_eSPI &TFTscreen);
 
   void initGraphics()
   {
@@ -68,47 +78,56 @@ namespace GinaESP{
       TFTscreen.print(1000 / (millis() - time));
   }
 
-  void fillCircle(TFT_eSPI &TFTscreen, uint16_t x, uint16_t y, uint8_t radius, uint16_t color)
+  void fillCircle(TFT_eSPI &TFTscreen, int16_t x, int16_t y, uint8_t radius, uint16_t color)
   {
     for(int i = -radius; i <= radius; i++)
     {
-      for(int j = -radius; j <= radius; j++)
-      {
-          if(i * i + j * j <= radius * radius)
-          {
-              int index = (y + j) * WIDTH + (x + i);
-              if(index >= 0 && index < WIDTH * HEIGHT) // Check that the index is within the buffer
-              {
-                  buffer[index] = color;
-              }
-          }
-      }
+        for(int j = -radius; j <= radius; j++)
+        {
+            if(i * i + j * j <= radius * radius)
+            {
+                int index = (y + j) * WIDTH + (x + i);
+                if(index >= 0 && index < WIDTH * HEIGHT) // Check that the index is within the buffer
+                {
+                    buffer[index] = color;
+                }
+            }
+        }
     }
   }
 
-  void drawHLine()
+  void drawHLine(TFT_eSPI &TFTscreen, int16_t x_start, int16_t x_end, int16_t y, uint16_t color)
   {
-
+    for(int i = min(x_start, x_end); i < max(x_start, x_end); i++)
+    {
+      buffer[y * WIDTH + i] = color;
+    }
   }
 
-  void drawVLine()
+  void drawVLine(TFT_eSPI &TFTscreen, int16_t y_start, int16_t y_end, int16_t x, uint16_t color)
   {
-
+    for(int i = min(y_start, y_end); i < max(y_start, y_end); i++)
+    {
+      buffer[i * WIDTH + x] = color;
+    }
   }
 
-  void drawLine()
+  void fillRect(TFT_eSPI &TFTscreen, int16_t diagp1_x, int16_t diagp1_y, int16_t diagp2_x, int16_t diagp2_y, uint16_t color)
   {
-
+    for(int i = min(diagp1_x, diagp2_x); i < max(diagp1_x, diagp2_x) - 1; i++)
+    {
+      drawVLine(TFTscreen, min(diagp1_y, diagp2_y), max(diagp1_y, diagp2_y), i, color);
+    }
   }
 
-  void drawRect()
+  int16_t min(int16_t a, int16_t b)
   {
-
+    return a ? a <= b : b;
   }
 
-  void drawTriangle()
+  int16_t max(int16_t a, int16_t b)
   {
-
+    return a ? a >= b : b;
   }
 
 }
