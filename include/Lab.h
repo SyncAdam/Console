@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
-#include <cstdlib>
 #include <Adafruit_MPU6050.h>
+#include <cstdlib>
 
 #include "GinaESP.h"
 #include "macros.h"
@@ -355,7 +355,7 @@ namespace Lab
 
     }
 
-    int labLoop(bool* gameWon, ball *gameBall, block map[], int mapsize, TFT_eSPI &TFTscreen)
+    int labLoop(bool* gameWon, ball *gameBall, block map[], int mapsize, TFT_eSPI &TFTscreen, bool firstRound)
     {
         float ax, ay;
         GinaESP::clearBuffer();
@@ -443,6 +443,7 @@ namespace Lab
             GinaESP::fillRect(TFTscreen, 0, 0, 30, 30, TFTscreen.color565(211, 211, 211));
             GinaESP::fillRect(TFTscreen, 5, 5, 25, 25, TFT_BLACK);
             GinaESP::drawScreen(TFTscreen);
+
         }
 
         if(gameWon) return 0;
@@ -456,7 +457,7 @@ namespace Lab
         int start_pos_x = 120;
         int start_pos_y = 300;
 
-        const short nGames = 3;
+        const short nGames = 4;
 
         GinaESP::clearBuffer();
         GinaESP::drawScreen(TFTscreen);
@@ -480,7 +481,7 @@ namespace Lab
             firstBall.speed_x = 0;
             firstBall.speed_y = 0;
 
-            labLoop(&gameWon, &firstBall, map, mapsize, TFTscreen);
+            labLoop(&gameWon, &firstBall, map, mapsize, TFTscreen, 1 ? i == 0 : 0);
         }
         
         return 0;
