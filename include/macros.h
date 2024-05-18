@@ -1,3 +1,6 @@
+#ifndef MACROS_H
+#define MACROS_H
+
 #define JOYX 2
 #define JOYY 0
 #define JOY_BUTTON 4
@@ -9,3 +12,5 @@
 
 #define WIDTH 240
 #define HEIGHT 320
+
+#endif

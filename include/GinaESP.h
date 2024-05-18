@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <SPI.h>
 #include <TFT_eSPI.h>
+
 #include "macros.h"
 
 #define WIDTH 240
@@ -98,7 +99,7 @@ namespace GinaESP{
 
   void drawHLine(TFT_eSPI &TFTscreen, int16_t x_start, int16_t x_end, int16_t y, uint16_t color)
   {
-    for(int i = min(x_start, x_end); i < max(x_start, x_end); i++)
+    for(int i = min(x_start, x_end); i <= max(x_start, x_end); i++)
     {
       buffer[y * WIDTH + i] = color;
     }
@@ -106,7 +107,7 @@ namespace GinaESP{
 
   void drawVLine(TFT_eSPI &TFTscreen, int16_t y_start, int16_t y_end, int16_t x, uint16_t color)
   {
-    for(int i = min(y_start, y_end); i < max(y_start, y_end); i++)
+    for(int i = min(y_start, y_end); i <= max(y_start, y_end); i++)
     {
       buffer[i * WIDTH + x] = color;
     }
@@ -114,7 +115,7 @@ namespace GinaESP{
 
   void fillRect(TFT_eSPI &TFTscreen, int16_t diagp1_x, int16_t diagp1_y, int16_t diagp2_x, int16_t diagp2_y, uint16_t color)
   {
-    for(int i = min(diagp1_x, diagp2_x); i < max(diagp1_x, diagp2_x) - 1; i++)
+    for(int i = min(diagp1_x, diagp2_x); i <= max(diagp1_x, diagp2_x); i++)
     {
       drawVLine(TFTscreen, min(diagp1_y, diagp2_y), max(diagp1_y, diagp2_y), i, color);
     }

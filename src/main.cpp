@@ -1,8 +1,9 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include <cstdlib>
-#include "GinaESP.h"
 #include <Adafruit_MPU6050.h>
+
+#include "GinaESP.h"
 #include "Lab.h"
 #include "macros.h"
 //pins are defined in the user setup header file
