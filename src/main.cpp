@@ -11,6 +11,14 @@
 #include <SPI.h>
 #include <Wire.h>
 
+typedef struct menutext{
+  String text;
+  int x;
+  int y;
+  int size;
+  uint16_t color;
+} MenuText;
+
 TFT_eSPI TFTscreen = TFT_eSPI(WIDTH, HEIGHT);
 Adafruit_MPU6050 mpu;
 
@@ -189,7 +197,120 @@ void testPeriphs()
   delay(500);
 }
 
+void printMenuElements(MenuText t[])
+{
+  for(int i = 2; i < 4; i++)
+  {
+    TFTscreen.setTextColor(t[i].color);
+    TFTscreen.setCursor(t[i].x, t[i].y);
+    TFTscreen.setTextSize(t[i].size);
+    TFTscreen.print(t[i].text);
+  }
+}
+
+void createMenuElements(MenuText t[])
+{
+  /*
+  t[0].x = 93;
+  t[0].y = 140;
+  t[0].color = ILI9341_BLUE;
+  t[0].size = 2;
+  t[0].text = "Snake";
+
+  t[1].x = 100;
+  t[1].y = 170;
+  t[1].color = ILI9341_BLUE;
+  t[1].size = 2;
+  t[1].text = "Dino";
+  */
+
+  t[2].x = 60;
+  t[2].y = 100;
+  t[2].color = ILI9341_BLUE;
+  t[2].size = 2;
+  t[2].text = "Labyrinthe";
+
+  t[3].x = 100;
+  t[3].y = 130;
+  t[3].color = ILI9341_BLUE;
+  t[3].size = 2;
+  t[3].text = "Agar";
+}
+
+void drawMenuRect(MenuText t)
+{
+  TFTscreen.drawRect(t.x - 4, t.y -4, t.text.length() * 10 + (t.text.length()-1)*2 + 8, 22, ILI9341_WHITE);
+}
+
+void undrawMenuRect(MenuText t)
+{
+  TFTscreen.drawRect(t.x - 4, t.y -4, t.text.length() * 10 + (t.text.length()-1)*2 + 8, 22, ILI9341_BLACK);
+}
+
+//main menu method
+int mainMenu()
+{
+  int selected = 0;  //selector index
+  int hoverindex = 2;
+  int dhoverindex = hoverindex;
+
+  //Erase screen
+  TFTscreen.fillScreen(ILI9341_BLACK);
+
+  //Create and store menu elements
+  MenuText Texts[4];
+  createMenuElements(Texts);
+
+  //Print "Choose your game!" on screen
+  TFTscreen.setCursor(20,60);
+  TFTscreen.setTextColor(ILI9341_WHITE);
+  TFTscreen.setTextSize(2);
+  TFTscreen.print("Choose your game!");
+  
+  //Print all the MenuText elements
+  //Note: the rectangle is drawn on the MenuText element which is currently chosen 
+  printMenuElements(Texts);
+  drawMenuRect(Texts[hoverindex]);
+
+  //Waiting until user selects a game
+  //Until then if a button is pressed, the selection rectangle is moved in function of which button is pressed 
+  while(!selected){
+    dhoverindex = hoverindex;
+    int joyy = analogRead(JOYY);
+    bool button2 = digitalRead(BUTTON2);
+    if(joyy < 100)
+    {
+      hoverindex++;
+      if(hoverindex == 4) hoverindex = 2;
+      undrawMenuRect(Texts[dhoverindex]);
+      drawMenuRect(Texts[hoverindex]);
+      delay(250);
+    } 
+    else if(joyy > 4000){
+      hoverindex--;
+      if(hoverindex < 2) hoverindex = 3;
+      undrawMenuRect(Texts[dhoverindex]);
+      drawMenuRect(Texts[hoverindex]);
+      delay(150);
+    }
+    if(button2){
+      delay(200);     //added a bit of delay for accidental touch protection
+      button2 = digitalRead(BUTTON2);
+      if(button2) return hoverindex;
+    }
+  }
+  
+}
+
 void loop() {
-  Lab::playLab(&mpu, TFTscreen);
+  switch(mainMenu())
+  {
+    case 2:
+      Lab::playLab(&mpu, TFTscreen);
+      break;
+
+    default:
+      break;
+  }
   //testPeriphs();
 }

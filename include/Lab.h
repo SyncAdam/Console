@@ -5,12 +5,13 @@
 
 #include "GinaESP.h"
 #include "macros.h"
+#include "LabMaps.h"
 
 #define MAP_SIZE_X 7
 #define MAP_SIZE_Y 7
 
-#define MAP_POSITION_X 20
-#define MAP_POSITION_Y 40
+#define MAP_POSITION_X 3
+#define MAP_POSITION_Y 50
 
 namespace Lab
 {
@@ -28,6 +29,7 @@ namespace Lab
         float bounce_coefficient = 0.6;
         int16_t x, y;
         int16_t color = TFT_WHITE;
+        bool killOnImpact = false;
     } wall;
 
     enum wallOrientation
@@ -41,7 +43,7 @@ namespace Lab
         int shape = CIRCLE;
         int16_t x, y;
         int16_t color;
-        float radius = 8;
+        float radius = 6;
         float acc_x = 0;
         float acc_y = 0;
         float speed_x = 0;
@@ -70,13 +72,18 @@ namespace Lab
         wall vertical_walls[MAP_SIZE_Y][MAP_SIZE_X + 1];
     } map;
 
-    void getInput(bool* button1, bool* button2, int* joyx, int* joyy, bool* joy_button, float* ax, float* ay);
     void initialize(Adafruit_MPU6050* fmpu);
+    void getInput(bool* button1, bool* button2, int* joyx, int* joyy, bool* joy_button, float* ax, float* ay);
     int playLab(Adafruit_MPU6050* fmpu, TFT_eSPI &TFTscreen);
-    int gameLoop(TFT_eSPI &TFTscreen);
-    void checkCollisions(ball* gameball, wall Walls[], int nWalls);
     void drawObjects(TFT_eSPI &TFTscreen, ball gameball, wall Walls[], int nWalls);
-    void generateWallsForBlock(block* b);
+    void resetBall(ball* gameball);
+    bool checkCollisions(ball* gameball, wall Walls[], int nWalls);
+    void generateBlocksFromLogic(block blocks[], const int verticals1[], const int horizontals1[]);
+    void deleteWall(wall* w);
+    void generateWallsForBlock(block* b, int walls[]);
+    int labLoop(bool* gameWon, ball *gameBall, block map[], int mapsize, TFT_eSPI &TFTscreen);
+    int game(TFT_eSPI &TFTscreen);
+    void printMenu(TFT_eSPI &TFTscreen);
 
     bool button1, button2;
     int joyx, joyy;
@@ -89,8 +96,11 @@ namespace Lab
     const int max_acceleration = 3;
     const float acceleration_sensitivity = 0.2;
 
-    const int wall_length = 28;
+    const int wall_length = 30;
     const int wall_thickness = 3;
+
+    const int start_pos_x = 120;
+    const int start_pos_y = 300;
 
     void initialize(Adafruit_MPU6050* fmpu)
     {
@@ -113,10 +123,41 @@ namespace Lab
         *button2 = digitalRead(BUTTON2);
     }
 
+    void printMenu(TFT_eSPI &TFTscreen)
+    {
+        GinaESP::clearBuffer();
+        GinaESP::drawScreen(TFTscreen);
+
+        TFTscreen.setTextSize(3);
+        TFTscreen.setTextColor(TFT_BROWN);
+        TFTscreen.setCursor(30, 100);
+        TFTscreen.printf("LABYRINTHE");
+
+        TFTscreen.setTextColor(TFT_WHITE);
+        TFTscreen.setTextSize(1);
+        TFTscreen.setCursor(45, 300);
+        TFTscreen.printf("Press any button to start");
+
+        delay(1500);
+
+        float ax, ay;
+
+        getInput(&button1, &button2, &joyx, &joyy, &joy_button, &ax, &ay);
+        while(!button1 && !button2 && !joy_button)
+        {
+            getInput(&button1, &button2, &joyx, &joyy, &joy_button, &ax, &ay);
+            delay(100);
+        }
+
+    }
+
     int playLab(Adafruit_MPU6050* fmpu, TFT_eSPI &TFTscreen)
     {
         initialize(fmpu);
-        return(gameLoop(TFTscreen));
+
+        printMenu(TFTscreen);
+        
+        return(game(TFTscreen));
     }
 
     void drawObjects(TFT_eSPI &TFTscreen, ball gameball, block blocks[], int nblocks)
@@ -142,12 +183,19 @@ namespace Lab
         }
     }
 
-    void checkCollisions(ball* gameball, wall Walls[], int nWalls)
-    {   
-        const float bounce_coeff = 0.5;
+    void resetBall(ball* gameball)
+    {
+        gameball->speed_x = 0;
+        gameball->speed_y = 0;
+        gameball->x = start_pos_x;
+        gameball->y = start_pos_y;
+    }
 
+    bool checkCollisions(ball* gameball, wall Walls[], int nWalls)
+    {   
         int16_t dx = gameball->x + gameball->speed_x;
         int16_t dy = gameball->y + gameball->speed_y;
+
         for(int i = 0; i < nWalls; i++)
         {
             switch(Walls[i].orientation)
@@ -159,7 +207,11 @@ namespace Lab
                         gameball->y - gameball->radius < Walls[i].y + wall_length))
                     {
                         gameball->speed_x = -gameball->speed_x * Walls[i].bounce_coefficient;
-                        return;
+                        if(Walls[i].killOnImpact)
+                        {
+                            resetBall(gameball);
+                        }
+                        return true;
                     }
                     if((dy + gameball->radius > Walls[i].y &&
                         dy - gameball->radius < Walls[i].y + wall_length) &&
@@ -167,7 +219,11 @@ namespace Lab
                         gameball->x - gameball->radius < Walls[i].x))
                     {
                         gameball->speed_y = -gameball->speed_y * Walls[i].bounce_coefficient;
-                        return;
+                        if(Walls[i].killOnImpact)
+                        {
+                            resetBall(gameball);
+                        }
+                        return true;
                     }
                     break;
 
@@ -178,7 +234,11 @@ namespace Lab
                         gameball->x - gameball->radius < Walls[i].x + wall_length))
                     {
                         gameball->speed_y = -gameball->speed_y  * Walls[i].bounce_coefficient;
-                        return;
+                        if(Walls[i].killOnImpact)
+                        {
+                            resetBall(gameball);
+                        }
+                        return true;
                     }
                     if((dx + gameball->radius > Walls[i].x &&
                         dx - gameball->radius < Walls[i].x + wall_length) &&
@@ -186,9 +246,32 @@ namespace Lab
                         gameball->y - gameball->radius < Walls[i].y))
                     {
                         gameball->speed_x = -gameball->speed_x  * Walls[i].bounce_coefficient;
-                        return;
+                        if(Walls[i].killOnImpact)
+                        {
+                            resetBall(gameball);
+                        }
+                        return true;
                     }
                     break;
+            }
+        }
+        return false;
+    }
+
+    void generateBlocksFromLogic(block blocks[], const int verticals1[], const int horizontals1[])
+    {
+        int offset_x = MAP_POSITION_X;
+        int offset_y = MAP_POSITION_Y;
+        for(int i = 0; i < MAP_SIZE_Y; i++)
+        {
+            for(int j = 0; j < MAP_SIZE_X; j++)
+            {
+                block b;
+                b.x = j * (wall_length + wall_thickness) + offset_x;
+                b.y = i * (wall_length + wall_thickness) + offset_y;
+                int walls[4] = {horizontals1[j + i * (MAP_SIZE_Y)], verticals1[j + i * (MAP_SIZE_X + 1)], horizontals1[j + (i + 1) * (MAP_SIZE_Y)], verticals1[j + i * (MAP_SIZE_X + 1) + 1]};
+                generateWallsForBlock(&b, walls);
+                blocks[i * (MAP_SIZE_X) + j] = b;
             }
         }
     }
@@ -200,20 +283,33 @@ namespace Lab
         w->orientation = -1;
     }
 
-    block* getBallsBlock(ball gameball, block gamemap[], int nblocks)
+    void generateWallsForBlock(block* b, int walls[])
     {
-        int x = gameball.x - MAP_POSITION_X;
-        int y = gameball.y - MAP_POSITION_Y;
 
-        int block_x = x % (wall_thickness + wall_length);
-        int block_y = y % (wall_thickness + wall_length);
+        for(int i = 0; i < 4; i++)
+        {
+            switch(walls[i])
+            {
+                case 1:
+                    break;
 
-        return &gamemap[block_y * MAP_SIZE_X + block_x];
-    }
+                case 2:
+                    b->walls[i].color = TFT_SKYBLUE;
+                    b->walls[i].bounce_coefficient = 2.0f;
+                    break;
+            
+                case 3:
+                    b->walls[i].color = TFT_YELLOW;
+                    b->walls[i].killOnImpact = true;
+                    break;
+                
+                default:
+                    deleteWall(&(b->walls[i]));
+                    break;
+            }
+        }
 
-    void generateWallsForBlock(block* b, bool walls[])
-    {
-        if(walls[0])
+        if(walls[0] != 0)
         {
             b->walls[0].x = b->x + wall_thickness;
             b->walls[0].y = b->y;
@@ -224,7 +320,7 @@ namespace Lab
             deleteWall(&(b->walls[0]));
         }
 
-        if(walls[1])
+        if(walls[1] != 0)
         {
             b->walls[1].x = b->x + wall_thickness;
             b->walls[1].y = b->y + wall_thickness;
@@ -235,7 +331,7 @@ namespace Lab
             deleteWall(&(b->walls[1]));
         }
 
-        if(walls[2])
+        if(walls[2] != 0)
         {
             b->walls[2].x = b->x + wall_thickness;
             b->walls[2].y = b->y + wall_thickness + wall_length;
@@ -246,7 +342,7 @@ namespace Lab
             deleteWall(&(b->walls[2]));
         }
 
-        if(walls[3])
+        if(walls[3] != 0)
         {
             b->walls[3].x = b->x + 2 * wall_thickness + wall_length;
             b->walls[3].y = b->y + wall_thickness;
@@ -256,47 +352,23 @@ namespace Lab
         {
             deleteWall(&(b->walls[3]));
         }
+
     }
 
-    int gameLoop(TFT_eSPI &TFTscreen)
+    int labLoop(bool* gameWon, ball *gameBall, block map[], int mapsize, TFT_eSPI &TFTscreen)
     {
         float ax, ay;
-        getInput(&button1, &button2, &joyx, &joyy, &joy_button, &ax, &ay);
-        
-        ball firstBall;
-        firstBall.x = WIDTH / 2;
-        firstBall.y = HEIGHT / 2 + 30;
-        firstBall.color = TFT_BLUE;
-
-        wall firstEverWall;
-        firstEverWall.orientation = HORIZONTAL;
-        firstEverWall.x = (WIDTH + wall_length - wall_thickness) / 2;
-        firstEverWall.y = (HEIGHT - wall_length + wall_thickness) / 2;
-        firstEverWall.color = TFT_WHITE;
-        firstEverWall.bounce_coefficient = 1.3;
-
-        block firstBlock;
-        firstBlock.x = MAP_POSITION_X;
-        firstBlock.y = MAP_POSITION_Y;
-        bool walls [4] = {true, false, true, false};
-        generateWallsForBlock(&firstBlock, walls);
-
-        block secondBlock;
-        secondBlock.x = firstBlock.x + wall_thickness + wall_length;
-        secondBlock.y = firstBlock.y;
-        generateWallsForBlock(&secondBlock, walls);
-
-        block map[2] = {firstBlock, secondBlock};
-
-        for(int i = 0; i < WIDTH * HEIGHT; i++)
-        {
-            GinaESP::buffer[i] = TFT_BLACK;
-        }
+        GinaESP::clearBuffer();
+        drawObjects(TFTscreen, *gameBall, map, mapsize);
+        GinaESP::fillRect(TFTscreen, 0, 0, 30, 30, TFTscreen.color565(211, 211, 211));
+        GinaESP::fillRect(TFTscreen, 5, 5, 25, 25, TFT_BLACK);
         GinaESP::drawScreen(TFTscreen);
 
-        Serial.println("Starting gameloop....");
+        delay(1000);
 
-        while(!button1)
+        getInput(&button1, &button2, &joyx, &joyy, &joy_button, &ax, &ay);
+
+        while(!*gameWon && !button1)
         {
             GinaESP::clearBuffer();
             getInput(&button1, &button2, &joyx, &joyy, &joy_button, &ay, &ax);
@@ -309,56 +381,108 @@ namespace Lab
             if(ay > max_acceleration) ay = max_acceleration;
             if(ay < -max_acceleration) ay = -max_acceleration;
 
-            if(firstBall.speed_x <= max_speed && firstBall.speed_x >= -max_speed)
+            if(gameBall->speed_x <= max_speed && gameBall->speed_x >= -max_speed)
             {
-                firstBall.speed_x += ax;
+                gameBall->speed_x += ax;
             }
-            else if(firstBall.speed_x > max_speed)
+            else if(gameBall->speed_x > max_speed)
             {
-                firstBall.speed_x = max_speed;
+                gameBall->speed_x = max_speed;
             }
-            else if(firstBall.speed_x < -max_speed)
+            else if(gameBall->speed_x < -max_speed)
             {
-                firstBall.speed_x = -max_speed;
+                gameBall->speed_x = -max_speed;
             }
-            if(firstBall.speed_y <= max_speed && firstBall.speed_y >= -max_speed)
+            if(gameBall->speed_y <= max_speed && gameBall->speed_y >= -max_speed)
             {
-                firstBall.speed_y += ay;
+                gameBall->speed_y += ay;
             }
-            else if(firstBall.speed_y > max_speed)
+            else if(gameBall->speed_y > max_speed)
             {
-                firstBall.speed_y = max_speed;
+                gameBall->speed_y = max_speed;
             }
-            else if(firstBall.speed_y < -max_speed)
+            else if(gameBall->speed_y < -max_speed)
             {
-                firstBall.speed_y = -max_speed;
+                gameBall->speed_y = -max_speed;
             }
 
-            int16_t dx = firstBall.x + firstBall.speed_x;
-            int16_t dy = firstBall.y + firstBall.speed_y;
+            int16_t dx = gameBall->x + gameBall->speed_x;
+            int16_t dy = gameBall->y + gameBall->speed_y;
 
-            checkCollisions(&firstBall, getBallsBlock(firstBall, map, MAP_SIZE_X * MAP_POSITION_Y)->walls, 4);
-
-            if(dx < WIDTH && dx > 0)
+            for(int i = 0; i < mapsize; i++)
             {
-                firstBall.x += firstBall.speed_x;
+                if(checkCollisions(gameBall, map[i].walls, 4)) break;
+            }
+            
+            if(dx < WIDTH - gameBall->radius && dx > 0 + gameBall->radius)
+            {
+                gameBall->x += gameBall->speed_x;
             }
             else
             {
-                firstBall.speed_x = 0;
+                gameBall->speed_x = 0;
             }
-            if(dy < HEIGHT && dy > 0)
+            if(dy < HEIGHT - gameBall->radius && dy > 0 + gameBall->radius)
             {
-                firstBall.y += firstBall.speed_y;
+                gameBall->y += gameBall->speed_y;
             }
             else
             {
-                firstBall.speed_y = 0;
+                gameBall->speed_y = 0;
             }
-            drawObjects(TFTscreen, firstBall, map, 2);
+            if(gameBall->x < 30 && gameBall->y < 30)
+            {
+                *gameWon = true;
+            }
+            if(button2 && button1)
+            {
+                *gameWon = true;
+            }
+
+            drawObjects(TFTscreen, *gameBall, map, mapsize);
+            GinaESP::fillRect(TFTscreen, 0, 0, 30, 30, TFTscreen.color565(211, 211, 211));
+            GinaESP::fillRect(TFTscreen, 5, 5, 25, 25, TFT_BLACK);
             GinaESP::drawScreen(TFTscreen);
         }
 
+        if(gameWon) return 0;
+        else if(button1) return 1;
+        else return 2;
+
+    }
+
+    int game(TFT_eSPI &TFTscreen)
+    {        
+        int start_pos_x = 120;
+        int start_pos_y = 300;
+
+        const short nGames = 3;
+
+        GinaESP::clearBuffer();
+        GinaESP::drawScreen(TFTscreen);
+
+        ball firstBall;
+        firstBall.color = TFT_NAVY;
+
+        short mapsize = MAP_SIZE_X * MAP_SIZE_Y;
+
+        firstBall.x = start_pos_x;
+        firstBall.y = start_pos_y;
+
+        for(int i = 0; i < nGames; i++)
+        {
+            bool gameWon = false;
+            block map[MAP_SIZE_X * MAP_SIZE_Y];
+            generateBlocksFromLogic(map, verticals[i], horizontals[i]);
+                    
+            firstBall.x = start_pos_x;
+            firstBall.y = start_pos_y;
+            firstBall.speed_x = 0;
+            firstBall.speed_y = 0;
+
+            labLoop(&gameWon, &firstBall, map, mapsize, TFTscreen);
+        }
+        
         return 0;
     }
 
