@@ -83,7 +83,7 @@ namespace Lab
     void generateWallsForBlock(block* b, int walls[]);
     int labLoop(bool* gameWon, ball *gameBall, block map[], int mapsize, TFT_eSPI &TFTscreen);
     int game(TFT_eSPI &TFTscreen);
-    void printMenu(TFT_eSPI &TFTscreen);
+    int printMenu(TFT_eSPI &TFTscreen);
 
     bool button1, button2;
     int joyx, joyy;
@@ -123,7 +123,7 @@ namespace Lab
         *button2 = digitalRead(BUTTON2);
     }
 
-    void printMenu(TFT_eSPI &TFTscreen)
+    int printMenu(TFT_eSPI &TFTscreen)
     {
         GinaESP::clearBuffer();
         GinaESP::drawScreen(TFTscreen);
@@ -148,6 +148,13 @@ namespace Lab
             getInput(&button1, &button2, &joyx, &joyy, &joy_button, &ax, &ay);
             delay(100);
         }
+        if(button1)
+        {
+            return 1;
+        }
+
+        return 0;
+        
 
     }
 
@@ -368,7 +375,7 @@ namespace Lab
 
         getInput(&button1, &button2, &joyx, &joyy, &joy_button, &ax, &ay);
 
-        while(!*gameWon && !button1)
+        while(!*gameWon)
         {
             GinaESP::clearBuffer();
             getInput(&button1, &button2, &joyx, &joyy, &joy_button, &ay, &ax);
@@ -444,6 +451,8 @@ namespace Lab
             GinaESP::fillRect(TFTscreen, 5, 5, 25, 25, TFT_BLACK);
             GinaESP::drawScreen(TFTscreen);
 
+            if(button1) return 1;
+
         }
 
         if(gameWon) return 0;
@@ -457,7 +466,7 @@ namespace Lab
         int start_pos_x = 120;
         int start_pos_y = 300;
 
-        const short nGames = 4;
+        const short nGames = 5;
 
         GinaESP::clearBuffer();
         GinaESP::drawScreen(TFTscreen);
@@ -481,7 +490,13 @@ namespace Lab
             firstBall.speed_x = 0;
             firstBall.speed_y = 0;
 
-            labLoop(&gameWon, &firstBall, map, mapsize, TFTscreen, 1 ? i == 0 : 0);
+            if(labLoop(&gameWon, &firstBall, map, mapsize, TFTscreen, 1 ? i == 0 : 0) != 0)
+            {
+                if(printMenu(TFTscreen) != 0)
+                {
+                    return 1;
+                }
+            }   
         }
         
         return 0;

@@ -172,6 +172,9 @@ void testPeriphs()
   joyy = analogRead(JOYY);
   joy_button = !digitalRead(JOY_BUTTON);
 
+  button1 = digitalRead(BUTTON1);
+  button2 = digitalRead(BUTTON2);
+
   Serial.print("button1: ");
   Serial.println(button1);
   Serial.print("button2: ");
