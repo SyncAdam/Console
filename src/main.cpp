@@ -6,6 +6,7 @@
 #include "GinaESP.h"
 #include "Lab.h"
 #include "macros.h"
+#include "Agar.h" 
 //pins are defined in the user setup header file
 
 #include <SPI.h>
@@ -303,14 +304,13 @@ int mainMenu()
 }
 
 void loop() {
-  switch(mainMenu())
-  {
-    case 2:
-      Lab::playLab(&mpu, TFTscreen);
-      break;
-
-    default:
-      break;
-  }
-  //testPeriphs();
+  int choice = mainMenu();
+    switch(choice) {
+        case 2:
+            Lab::playLab(&mpu, TFTscreen);
+            break;
+        case 3:
+            playAgar(TFTscreen);  // play agar
+            break;
+    }
 }
